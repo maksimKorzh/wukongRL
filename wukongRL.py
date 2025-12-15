@@ -5,7 +5,7 @@ from random import randint
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 24
 MAP_WIDTH = SCREEN_WIDTH
-MAP_HEIGHT = SCREEN_HEIGHT-1
+MAP_HEIGHT = SCREEN_HEIGHT-2
 ROOM_MAX_SIZE = 12
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
@@ -219,11 +219,11 @@ def player_move_or_attack(dx, dy, objects, scr):
       target = obj
       break
   if target is not None:
-    scr.addstr(0,0, 'The ' + target.name + ' laughs at your puny efforts to attack him!')
-    scr.refresh()
+    print_message('The ' + target.name + ' laughs at your puny efforts to attack him!', scr)
   else:
     player.move(dx, dy, objects)
     fov_recompute = True
+    print_message('', scr)
 
 def handle_command(scr, objects):
   global fov_recompute
@@ -236,7 +236,19 @@ def handle_command(scr, objects):
     elif ch == ord('k'): player_move_or_attack(0, -1, objects, scr)
     elif ch == ord('l'): player_move_or_attack(1, 0, objects, scr)
     else: return 'didnt-take-turn'
-  
+
+def print_message(msg, scr):
+  curses.curs_set(0)
+  scr.move(22, 0)
+  scr.clrtoeol()
+  if len(msg) > SCREEN_WIDTH:
+    scr.addstr(22,0, ' '.join(msg.split(' ')[0:10]) + '--more--')
+    ch = -1
+    while ch == -1: ch = scr.getch()
+    print_message(' '.join(msg.split(' ')[15:]), scr)
+  else: scr.addstr(22,0, msg)
+  scr.refresh()
+
 def main(scr):
   global fov_recompute, game_state, player_action
   rows, cols = scr.getmaxyx()
@@ -262,8 +274,7 @@ def main(scr):
       for obj in objects:
         if obj != player:
           pass
-          #scr.addstr(0, 0, 'The ' + obj.name + ' takes turn!')
-          #scr.refresh()
+          #print_message('The ' + obj.name + ' takes turn!', scr)
 
 try: curses.wrapper(main)
 except RuntimeError as e: print(e)
