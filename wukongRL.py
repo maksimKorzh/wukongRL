@@ -6,6 +6,13 @@ SCREEN_HEIGHT = 24
 MAP_WIDTH = SCREEN_WIDTH
 MAP_HEIGHT = SCREEN_HEIGHT-1
 
+class Rect:
+  def __init__(self, x, y, w, h):
+    self.x1 = x
+    self.y1 = y
+    self.x2 = x + w
+    self.y2 = y + h
+
 class Tile:
   def __init__(self, blocked, block_sight=None):
     self.blocked = blocked
@@ -30,14 +37,21 @@ class GameObject:
   def clear(self):
     self.scr.addch(self.y, self.x, ' ')
 
+def create_room(room):
+  global map
+  for x in range(room.x1 + 1, room.x2):
+    for y in range(room.y1 + 1, room.y2):
+      map[x][y].blocked = False
+      map[x][y].block_sight = False
+
 def make_map():
   global map
-  map = [[Tile(False) for y in range(MAP_HEIGHT)] for x in range(MAP_WIDTH)]
-  map[30][11].blocked = True
-  map[30][11].block_sight = True
-  map[40][11].blocked = True
-  map[40][11].block_sight = True
-
+  map = [[Tile(True) for y in range(MAP_HEIGHT)] for x in range(MAP_WIDTH)]
+  room1 = Rect(10, 15, 20, 5)
+  room2 = Rect(40, 15, 20, 5)
+  create_room(room1)
+  create_room(room2)
+  
 def render_all(scr, objects):
   for y in range(MAP_HEIGHT):
     for x in range(MAP_WIDTH):
@@ -68,14 +82,14 @@ def main(scr):
   curses.raw()
   scr.keypad(1)
   curses.use_default_colors()
-  player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', scr)
-  monster = GameObject(SCREEN_WIDTH//2-5, SCREEN_HEIGHT//2, 'M', scr)
+  player = GameObject(12, 18, '@', scr)
+  monster = GameObject(12, 16, 'M', scr)
   objects = [player, monster]
   make_map()
   while True:
     render_all(scr, objects)
     handle_command(scr, player)
-    for object in objects: object.clear()
+    #for object in objects: object.clear()
 
 try: curses.wrapper(main)
 except RuntimeError as e: print(e)
