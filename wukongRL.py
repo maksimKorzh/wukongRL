@@ -104,16 +104,76 @@ def make_map(player, objects, scr):
           create_h_tunnel(prev_x, new_x, new_y)
       rooms.append(new_room)
       num_rooms += 1
-  
+
+def calculate_fov(player, radius=10):
+  visible = set()
+  for dx in range(-radius, radius+1):
+    for dy in range(-radius, radius+1):
+      x = player.x + dx
+      y = player.y + dy
+      if x < 0 or x >= MAP_WIDTH or y < 0 or y >= MAP_HEIGHT: continue
+      tiles_on_line = get_line(player.x, player.y, x, y)
+      blocked = False
+      for tx, ty in tiles_on_line:
+        if is_visible_tile(tx, ty): visible.add((tx, ty))
+        else:
+          visible.add((tx, ty))
+          blocked = True
+          break
+      if blocked: continue
+  return visible
+
+def get_line(x0, y0, x1, y1):
+  line = []
+  dx = abs(x1 - x0)
+  dy = abs(y1 - y0)
+  x, y = x0, y0
+  sx = 1 if x0 < x1 else -1
+  sy = 1 if y0 < y1 else -1
+  if dx > dy:
+    err = dx // 2
+    while x != x1:
+      line.append((x, y))
+      x += sx
+      err -= dy
+      if err < 0:
+        y += sy
+        err += dx
+  else:
+    err = dy // 2
+    while y != y1:
+      line.append((x, y))
+      y += sy
+      err -= dx
+      if err < 0:
+        x += sx
+        err += dy
+  line.append((x1, y1))
+  return line
+
+def is_visible_tile(x, y):
+  global map
+  if x >= MAP_WIDTH or x < 0: return False
+  elif y >= MAP_HEIGHT or y < 0: return False
+  elif map[x][y].blocked == True: return False
+  elif map[x][y].block_sight == True: return False
+  else: return True
+
 def render_all(scr, objects):
+  #global fov_recompute
+  global visible_tiles
+  player = objects[0]
+  visible_tiles = calculate_fov(player)
   for y in range(MAP_HEIGHT):
     for x in range(MAP_WIDTH):
+      visible = (x, y) in visible_tiles
+      if visible: map[x][y].explored = True
       wall = map[x][y].block_sight
-      if wall: scr.addch(y, x, '#')
-      else: scr.addch(y, x, '.')
+      if map[x][y].explored:
+        if wall: scr.addch(y, x, '#')
+        else: scr.addch(y, x, '.')
   for object in objects: object.draw()
   curses.curs_set(0)
-  player = objects[0]
   scr.move(player.y, player.x)
   curses.curs_set(1)
   scr.refresh()
@@ -142,7 +202,7 @@ def main(scr):
   while True:
     render_all(scr, objects)
     handle_command(scr, player)
-    #for object in objects: object.clear()
+    for object in objects: object.clear()
 
 try: curses.wrapper(main)
 except RuntimeError as e: print(e)
