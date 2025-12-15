@@ -167,11 +167,15 @@ def render_all(scr, objects):
   for y in range(MAP_HEIGHT):
     for x in range(MAP_WIDTH):
       visible = (x, y) in visible_tiles
-      if visible: map[x][y].explored = True
       wall = map[x][y].block_sight
-      if map[x][y].explored:
+      if not visible:
+        if map[x][y].explored:
+          if wall: scr.addch(y, x, '#')
+          else: scr.addch(y, x, ' ')
+      else:
         if wall: scr.addch(y, x, '#')
         else: scr.addch(y, x, '.')
+        map[x][y].explored = True
   for object in objects: object.draw()
   curses.curs_set(0)
   scr.move(player.y, player.x)
