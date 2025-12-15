@@ -184,22 +184,24 @@ def is_visible_tile(x, y):
   else: return True
 
 def render_all(scr, objects):
-  #global fov_recompute
+  global fov_recompute
   global visible_tiles
   player = objects[0]
-  visible_tiles = calculate_fov(player)
-  for y in range(MAP_HEIGHT):
-    for x in range(MAP_WIDTH):
-      visible = (x, y) in visible_tiles
-      wall = map[x][y].block_sight
-      if not visible:
-        if map[x][y].explored:
+  if fov_recompute:
+    fov_recompute = False
+    visible_tiles = calculate_fov(player)
+    for y in range(MAP_HEIGHT):
+      for x in range(MAP_WIDTH):
+        visible = (x, y) in visible_tiles
+        wall = map[x][y].block_sight
+        if not visible:
+          if map[x][y].explored:
+            if wall: scr.addch(y, x, '#')
+            else: scr.addch(y, x, ' ')
+        else:
           if wall: scr.addch(y, x, '#')
-          else: scr.addch(y, x, ' ')
-      else:
-        if wall: scr.addch(y, x, '#')
-        else: scr.addch(y, x, '.')
-        map[x][y].explored = True
+          else: scr.addch(y, x, '.')
+          map[x][y].explored = True
   for object in objects: object.draw()
   curses.curs_set(0)
   scr.move(player.y, player.x)
@@ -207,15 +209,17 @@ def render_all(scr, objects):
   scr.refresh()
 
 def handle_command(scr, objects):
+  global fov_recompute
   player = objects[0]
   ch = scr.getch()
   if ch == ord('Q'): sys.exit(0)
-  elif ch == ord('h'): player.move(-1, 0, objects)
-  elif ch == ord('j'): player.move(0, 1, objects)
-  elif ch == ord('k'): player.move(0, -1, objects)
-  elif ch == ord('l'): player.move(1, 0, objects)
+  elif ch == ord('h'): player.move(-1, 0, objects); fov_recompute = True
+  elif ch == ord('j'): player.move(0, 1, objects); fov_recompute = True
+  elif ch == ord('k'): player.move(0, -1, objects); fov_recompute = True
+  elif ch == ord('l'): player.move(1, 0, objects); fov_recompute = True
   
 def main(scr):
+  global fov_recompute
   rows, cols = scr.getmaxyx()
   if (rows < SCREEN_HEIGHT or cols < SCREEN_WIDTH):
     raise RuntimeError('Set your terminal to at least 80x24')
@@ -227,6 +231,7 @@ def main(scr):
   player = GameObject(0, 0, '@', 'player', scr, blocks=True)
   objects = [player]
   make_map(player, objects, scr)
+  fov_recompute = True
   while True:
     render_all(scr, objects)
     handle_command(scr, objects)
