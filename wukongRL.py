@@ -1,5 +1,5 @@
 #!/bin/python3
-import curses, time, sys
+import curses, time, math, sys
 from random import randint
 
 SCREEN_WIDTH = 80
@@ -35,25 +35,72 @@ class Tile:
     self.block_sight = block_sight
 
 class GameObject:
-  def __init__(self, x, y, ch, name, scr, blocks=False):
+  def __init__(self, x, y, ch, name, scr, blocks=False, fighter=None, ai=None):
     self.x = x
     self.y = y
     self.ch = ch
     self.name = name
     self.scr = scr
     self.blocks = blocks
+    self.fighter = fighter
+    if self.fighter: self.fighter.owner = self
+    self.ai = ai
+    if self.ai: self.ai.owner = self
     
   def move(self, dx, dy, objects):
     if not is_blocked(self.x + dx, self.y + dy, objects):
       self.x += dx
       self.y += dy
-    
+  
+  def move_towards(self, target_x, target_y, objects):
+    dx = target_x - self.x
+    dy = target_y - self.y
+    distance = math.sqrt(dx ** 2 + dy ** 2)
+    dx = int(round(dx / distance))
+    dy = int(round(dy / distance))
+    self.move(dx, dy, objects)    
+
+  def distance_to(self, other):
+    dx = other.x - self.x
+    dy = other.y - self.y
+    return math.sqrt(dx ** 2 + dy ** 2)
+  
   def draw(self):
     if (self.x, self.y) in visible_tiles:
       self.scr.addch(self.y, self.x, self.ch)
 
   def clear(self):
     self.scr.addch(self.y, self.x, ' ')
+
+class Fighter:
+  def __init__(self, hp, defense, power, death_function=None):
+    self.max_hp = hp
+    self.hp = hp
+    self.defense = defense
+    self.power = power
+    self.death_function = death_function
+
+  def take_damage(self, damage):
+    if damage > 0:
+      self.hp -= damage
+      if self.hp <= 0:
+        function = self.death_function
+        if function is not None: function(self.owner)
+          
+  def attack(self, target):
+    damage = self.power - target.fighter.defense
+    if damage > 0:
+      print(self.owner.name.capitalize() + ' attacks ' + target.name +  ' for ' + str(damage) + ' hit points.')
+      target.fighter.take_damage(damage)
+    else: print(self.owner.name.capitalize() + ' attacks ' + target.name +  ' but it has no effect!')
+
+class BasicEnemy:
+  def take_turn(self, objects, scr):
+    player = objects[0]
+    enemy = self.owner
+    if (enemy.x, enemy.y) in visible_tiles:
+      if enemy.distance_to(player) >= 2: enemy.move_towards(player.x, player.y, objects)
+      elif player.fighter.hp > 0: print_message('The attack of the ' + enemy.name + ' bounces off your shiny metal armor!', scr)
 
 def create_room(room):
   global map
@@ -123,10 +170,22 @@ def place_objects(room, objects, scr):
     if not is_blocked(x, y, objects):
       #chances: 20% enemy A, 40% enemy B, 10% enemy C, 30% enemy D:
       choice = randint(0, 100)
-      if choice < 20: enemy = GameObject(x, y,  'A', 'enemy A',  scr, blocks=True)
-      elif choice < 20+40: enemy = GameObject(x, y,  'B', 'enemy B',  scr, blocks=True)
-      elif choice < 20+40+10: enemy = GameObject(x, y,  'C', 'enemy C',  scr, blocks=True)
-      else: enemy = GameObject(x, y,  'D', 'enemy D',  scr, blocks=True)
+      if choice < 20:
+        fighter_component = Fighter(hp=10, defense=0, power=3)
+        ai_component = BasicEnemy()
+        enemy = GameObject(x, y,  'A', 'enemy A',  scr, blocks=True, fighter=fighter_component, ai=ai_component)
+      elif choice < 20+40:
+        fighter_component = Fighter(hp=5, defense=0, power=1)
+        ai_component = BasicEnemy()
+        enemy = GameObject(x, y,  'B', 'enemy B',  scr, blocks=True, fighter=fighter_component, ai=ai_component)
+      elif choice < 20+40+10:
+        fighter_component = Fighter(hp=16, defense=2, power=5)
+        ai_component = BasicEnemy()
+        enemy = GameObject(x, y,  'C', 'enemy C',  scr, blocks=True, fighter=fighter_component, ai=ai_component)
+      else:
+        fighter_component = Fighter(hp=6, defense=0, power=4)
+        ai_component = BasicEnemy()
+        enemy = GameObject(x, y,  'D', 'enemy D',  scr, blocks=True, fighter=fighter_component, ai=ai_component)
       objects.append(enemy)
 
 def calculate_fov(player, radius=10):
@@ -259,7 +318,8 @@ def main(scr):
   curses.raw()
   scr.keypad(1)
   curses.use_default_colors()
-  player = GameObject(0, 0, '@', 'player', scr, blocks=True)
+  fighter_component = Fighter(hp=30, defense=2, power=5)
+  player = GameObject(0, 0, '@', 'player', scr, blocks=True, fighter=fighter_component)
   objects = [player]
   make_map(player, objects, scr)
   fov_recompute = True
@@ -272,9 +332,7 @@ def main(scr):
     for object in objects: object.clear()
     if game_state == 'playing' and player_action != 'didnt-take-turn':
       for obj in objects:
-        if obj != player:
-          pass
-          #print_message('The ' + obj.name + ' takes turn!', scr)
+        if obj.ai: obj.ai.take_turn(objects, scr)
 
 try: curses.wrapper(main)
 except RuntimeError as e: print(e)
