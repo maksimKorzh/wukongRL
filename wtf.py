@@ -174,7 +174,7 @@ def cast_qi_attack(player, objects, scr):
 
 def player_death(player, objects, scr):
   global game_state
-  print_message('You died!', scr)
+  print_message('You died! Press "Q" to exit.', scr)
   game_state = 'dead'
   player.ch = '%'
 
@@ -484,10 +484,10 @@ def main(scr):
       else: all_enemies += 1
     render_all(scr, objects)
     if all_enemies == 0 or game_state == 'dead':
-      if game_state != 'dead': print_message('You killed all enemies!', scr)
+      if game_state != 'dead': print_message('You killed all enemies! Press "Q" to exit.', scr)
       ch = -1
       while ch == -1: ch = scr.getch()
-      break
+      if ch == ord('Q'): break
     player_action = handle_command(scr, objects, inventory)
     if player_action == 'exit': sys.exit(0)
     for object in objects: object.clear()
