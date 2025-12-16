@@ -319,6 +319,10 @@ def handle_command(scr, objects):
     elif ch == ord('j'): player_move_or_attack(0, 1, objects, scr)
     elif ch == ord('k'): player_move_or_attack(0, -1, objects, scr)
     elif ch == ord('l'): player_move_or_attack(1, 0, objects, scr)
+    elif ch == ord('y'): player_move_or_attack(-1, -1, objects, scr)
+    elif ch == ord('u'): player_move_or_attack(1, -1, objects, scr)
+    elif ch == ord('b'): player_move_or_attack(-1, 1, objects, scr)
+    elif ch == ord('n'): player_move_or_attack(1, 1, objects, scr)
     else: return 'didnt-take-turn'
 
 def print_message(msg, scr):
