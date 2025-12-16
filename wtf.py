@@ -476,9 +476,8 @@ def main(scr):
   defense_item = GameObject(0,0, '!', 'QI cultivation spell', scr, item=qi_defense_component)
   inventory = [defense_item, defense_item, defense_item, attack_item, attack_item, attack_item]
   make_map(player, objects, scr)
-  fov_recompute = True
+  fov_recompute = True; player_action = None
   game_state = 'playing'
-  player_action = None
   while True:
     all_enemies = 0
     for obj in objects:
@@ -487,7 +486,8 @@ def main(scr):
     render_all(scr, objects)
     if all_enemies == 0 or game_state == 'dead':
       if game_state != 'dead': print_message('You killed all enemies! Press "Q" to exit.', scr)
-      ch = -1; while ch == -1: ch = scr.getch()
+      ch = -1
+      while ch == -1: ch = scr.getch()
       if ch == ord('Q'): break
     player_action = handle_command(scr, objects, inventory)
     if player_action == 'exit': sys.exit(0)
