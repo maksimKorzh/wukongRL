@@ -149,7 +149,7 @@ class Item:
     else:
       if self.use_function(player, objects, scr) != 'cancelled': inventory.remove(self.owner)
 
-def cast_heal(player, objects, scr):
+def cast_qi_heal(player, objects, scr):
   if player.fighter.hp == player.fighter.max_hp:
     print_message('You are already at full health.', scr)
     return 'cancelled'
@@ -291,7 +291,7 @@ def place_objects(room, objects, scr):
     x = randint(room.x1+1, room.x2-1)
     y = randint(room.y1+1, room.y2-1)
     if not is_blocked(x, y, objects):
-      item_component = Item(use_function=cast_heal)
+      item_component = Item(use_function=cast_qi_heal)
       item = GameObject(x, y, '!', 'QI cultivation spell', scr, item=item_component)
       objects.append(item)
       item.send_to_back(objects)
@@ -470,9 +470,11 @@ def main(scr):
   fighter_component = Fighter(hp=WUKONG_START_HP, defense=WUKONG_START_DEFENSE, power=WUKONG_START_POWER, death_function=player_death)
   player = GameObject(0, 0, '@', 'Wukong', scr, blocks=True, fighter=fighter_component)
   objects = [player]
-  item_component = Item(use_function=cast_qi_attack)
-  item = GameObject(0,0, '!', 'QI attack spell', scr, item=item_component)
-  inventory = [item, item, item]
+  qi_attack_component = Item(use_function=cast_qi_attack)
+  attack_item = GameObject(0,0, '!', 'QI attack spell', scr, item=qi_attack_component)
+  qi_defense_component = Item(use_function=cast_qi_heal)
+  defense_item = GameObject(0,0, '!', 'QI cultivation spell', scr, item=qi_defense_component)
+  inventory = [defense_item, defense_item, defense_item, attack_item, attack_item, attack_item]
   make_map(player, objects, scr)
   fov_recompute = True
   game_state = 'playing'
@@ -485,8 +487,7 @@ def main(scr):
     render_all(scr, objects)
     if all_enemies == 0 or game_state == 'dead':
       if game_state != 'dead': print_message('You killed all enemies! Press "Q" to exit.', scr)
-      ch = -1
-      while ch == -1: ch = scr.getch()
+      ch = -1; while ch == -1: ch = scr.getch()
       if ch == ord('Q'): break
     player_action = handle_command(scr, objects, inventory)
     if player_action == 'exit': sys.exit(0)
