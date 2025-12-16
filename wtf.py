@@ -259,6 +259,12 @@ def place_objects(room, objects, scr):
       objects.append(item)
       item.send_to_back(objects)
 
+    x1 = randint(room.x1+1, room.x2-1)
+    y1 = randint(room.y1+1, room.y2-1)
+    if not is_blocked(x1, y1, objects) and x1 != x and y1 != y:
+      item_component = Item(use_function=cast_qi_attack)
+      item = GameObject(x1, y1, '~', 'qi attack spell', scr, item=item_component)
+      objects.append(item)
 def calculate_fov(player, radius=10):
   visible = set()
   for dx in range(-radius, radius+1):
@@ -422,12 +428,9 @@ def main(scr):
   fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
   player = GameObject(0, 0, '@', 'Wukong', scr, blocks=True, fighter=fighter_component)
   objects = [player]
-  
   item_component = Item(use_function=cast_qi_attack)
-  item = GameObject(0,0, '!', 'QI attack', scr, item=item_component)
+  item = GameObject(0,0, '!', 'qi attack spell', scr, item=item_component)
   inventory = [item, item, item]
-  
-  
   make_map(player, objects, scr)
   fov_recompute = True
   game_state = 'playing'
