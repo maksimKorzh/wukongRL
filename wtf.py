@@ -9,7 +9,7 @@ MAP_HEIGHT = SCREEN_HEIGHT-2
 ROOM_MAX_SIZE = 12
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
-MAX_ROOM_MONSTERS = 3
+MAX_ROOM_MONSTERS = 5
 MAX_ROOM_ITEMS = 2
 HEAL_AMOUNT = 5
 WUKONG_START_HP = 10
@@ -17,16 +17,16 @@ WUKONG_START_DEFENSE = 0
 WUKONG_START_POWER = 5
 HUNGRY_GHOST_HP = 5
 HUNGRY_GHOST_DEFENSE = 0
-HUNGRY_GHOST_POWER = 1
+HUNGRY_GHOST_POWER = 5
 WHITE_BONE_DEMON_HP = 7
 WHITE_BONE_DEMON_DEFENSE = 2
-WHITE_BONE_DEMON_POWER = 3
+WHITE_BONE_DEMON_POWER = 7
 BULL_DEMON_HP = 15
 BULL_DEMON_DEFENSE = 5
-BULL_DEMON_POWER = 5
+BULL_DEMON_POWER = 10
 SPIDER_QUEEN_HP = 30
 SPIDER_QUEEN_DEFENSE = 7
-SPIDER_QUEEN_POWER = 7
+SPIDER_QUEEN_POWER = 15
 ERLAN_SHEN_HP = 50
 ERLAN_SHEN_DEFENSE = 10
 ERLAN_SHEN_POWER = 20
@@ -157,7 +157,7 @@ def cast_heal(player, objects, scr):
   player.fighter.heal(HEAL_AMOUNT)
 
 def cast_qi_attack(player, objects, scr):
-  print_message('Who to attack? (enemy char, e.g. "A" or "B")', scr)
+  print_message('Who to attack? (enemy char, e.g. "H" or "W")', scr)
   ch = -1
   while ch == -1: ch = scr.getch()
   hit = False
@@ -182,13 +182,19 @@ def enemy_death(enemy, objects, scr):
   print_message(enemy.name.capitalize() + ' is dead!', scr)
   player = objects[0]
   if player.fighter.max_hp + 5 < 99: player.fighter.max_hp += 5
-  player.fighter.defense += 3
-  player.fighter.power += 2
+  amount = 0
+  if enemy.ch == 'H': amount = 1
+  elif enemy.ch == 'W': amount = 3
+  elif enemy.ch == 'B': amount = 5
+  elif enemy.ch == 'S': amount = 7
+  elif enemy.ch == 'E': amount = 9
+  
+  player.fighter.defense += amount
+  player.fighter.power += amount
   enemy.ch = '%'
   enemy.blocks = False
   enemy.fighter = None
   enemy.ai = None
-  enemy.name = 'remains of ' + enemy.name
   enemy.send_to_back(objects)
 
 def create_room(room):
@@ -419,8 +425,12 @@ def handle_command(scr, objects, inventory):
           print_message('What to use? (inventory item, e.q. "a" or "b")', scr)
           ch = -1
           while ch == -1: ch = scr.getch()
+          used = False
           for _, obj in enumerate(inventory):
-            if ch - ord('a') == _: obj.item.use(player, objects, inventory, scr)
+            if ch - ord('a') == _:
+              obj.item.use(player, objects, inventory, scr)
+              used = True
+          if not used: print_message('There is no such item!', scr)
 
       if ch == ord(','):
         for obj in objects:
