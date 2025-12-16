@@ -65,6 +65,10 @@ class GameObject:
     dy = other.y - self.y
     return math.sqrt(dx ** 2 + dy ** 2)
   
+  def send_to_back(self, objects):
+    objects.remove(self)
+    objects.insert(1, self)
+  
   def draw(self):
     if (self.x, self.y) in visible_tiles:
       self.scr.addch(self.y, self.x, self.ch)
@@ -80,19 +84,19 @@ class Fighter:
     self.power = power
     self.death_function = death_function
 
-  def take_damage(self, damage, scr):
+  def take_damage(self, damage, objects, scr):
     if damage > 0:
       self.hp -= damage
       if self.hp <= 0:
         function = self.death_function
-        if function is not None: function(self.owner, scr)
+        if function is not None: function(self.owner, objects, scr)
           
-  def attack(self, target, scr):
+  def attack(self, target, objects, scr):
     enemy_stats = self.owner.name.capitalize() + '(HP:' + str(self.hp) + '/' + str(self.max_hp) + ' Power:' + str(self.power) + ' Defence:' + str(self.defense) + ')'
     damage = self.power - target.fighter.defense
     if damage > 0:
       if self.owner.name != 'Wukong': print_message(enemy_stats + ' attacks ' + target.name +  ' for ' + str(damage) + ' hit points.', scr)
-      target.fighter.take_damage(damage, scr)
+      target.fighter.take_damage(damage, objects, scr)
     else: print_message(enemy_stats + ' attacks ' + target.name +  ' but it has no effect!', scr)
 
 class BasicEnemy:
@@ -101,21 +105,22 @@ class BasicEnemy:
     enemy = self.owner
     if (enemy.x, enemy.y) in visible_tiles:
       if enemy.distance_to(player) >= 2: enemy.move_towards(player.x, player.y, objects)
-      elif player.fighter.hp > 0: enemy.fighter.attack(player, scr)
+      elif player.fighter.hp > 0: enemy.fighter.attack(player, objects, scr)
 
-def player_death(player, scr):
+def player_death(player, objects, scr):
   global game_state
   print_message('You died!', scr)
   game_state = 'dead'
   player.ch = '%'
 
-def enemy_death(enemy, scr):
+def enemy_death(enemy, objects, scr):
   print_message(enemy.name.capitalize() + ' is dead!', scr)
   enemy.ch = '%'
   enemy.blocks = False
   enemy.fighter = None
   enemy.ai = None
   enemy.name = 'remains of ' + enemy.name
+  enemy.send_to_back(objects)
 
 def create_room(room):
   global map
@@ -277,6 +282,7 @@ def render_all(scr, objects):
           else: scr.addch(y, x, '.')
           map[x][y].explored = True
   for object in objects: object.draw()
+  player.draw()
   scr.move(23, 0)
   scr.clrtoeol()
   scr.addstr(23,0, 'Wukong (HP:' + str(player.fighter.hp) + '/' + str(player.fighter.max_hp) + ' '
@@ -297,7 +303,7 @@ def player_move_or_attack(dx, dy, objects, scr):
     if obj.fighter and obj.x == x and obj.y == y:
       target = obj
       break
-  if target is not None: player.fighter.attack(target, scr)
+  if target is not None: player.fighter.attack(target, objects, scr)
   else:
     player.move(dx, dy, objects)
     fov_recompute = True
